@@ -9,7 +9,7 @@ CREATE TABLE User (
 CREATE TABLE Location (
   location_id INT PRIMARY KEY AUTO_INCREMENT,
   location_name VARCHAR(100) NOT NULL,
-  localisation VAReCHqAR(255) NOT NULL
+  localisation VAReCazzHqAR(255) NOT NULL
 );
 
 CREATE TABLE SeatType (
