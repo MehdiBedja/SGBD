@@ -1,0 +1,37 @@
+pipeline {
+    agent any
+    stages {
+        stage('Download Required Software') {
+            steps {
+                script {
+                    echo 'Download Oracle Preinstallation and Database Software'
+                    powershell '(New-Object System.Net.WebClient).DownloadFile(\'https://yum.oracle.com/repo/OracleLinux/OL7/latest/x86_64/getPackage/oracle-database-preinstall-21c-1.0-1.el7.x86_64.rpm\', \'F:\\fichier\\oracle-database-preinstall-21c-1.0-1.el7.x86_64.rpm\')'
+                }
+            }
+        }
+
+        stage('Install Required Software') {
+            steps {
+                echo 'Install Oracle Preinstallation RPM'
+                bat 'F:\\fichier\\oracle-database-preinstall-21c-1.0-1.el7.x86_64.rpm'
+
+                echo 'Install Oracle Database Software'
+                bat 'F:\\fichier\\oracle-database-ee-21c-1.0-1.x86_64.rpm'
+            }
+        }
+        stage('Delete RPM Files') {
+            steps {
+                echo 'Delete RPM Files'
+                bat 'del F:\\fichier\\oracle-database-preinstall-21c-1.0-1.el7.x86_64.rpm'
+                bat 'del F:\\fichier\\oracle-database-ee-21c-1.0-1.x86_64.rpm'
+            }
+        }
+        stage('Create Database') {
+            
+            steps {
+                echo 'Configure Oracle Database'
+                bat 'F:\\path\\to\\oracle\\executable\\configure.exe'
+            }
+        }
+    }
+}
