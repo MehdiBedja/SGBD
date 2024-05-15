@@ -16,7 +16,7 @@ pipeline {
         RENDER_DATABASE_NAME = 'eventdatabase_gq69'
         RENDER_DATABASE_USERNAME = 'eventdatabase_gq69_user'
         RENDER_DATABASE_PASSWORD = 'oiKQmXkS4srpTlTK8TZgtqJkM0bo8X2P'
-        EXTERNAL_DATABASE_URL = "postgres://${RENDER_DATABASE_USERNAME}:${RENDER_DATABASE_PASSWORD}@${RENDER_DATABASE_HOSTNAME}/${RENDER_DATABASE_NAME}"
+        EXTERNAL_DATABASE_URL = "postgres://eventdatabase_gq69_user:oiKQmXkS4srpTlTK8TZgtqJkM0bo8X2P@dpg-cp2jb6fsc6pc73a6qem0-a.oregon-postgres.render.com/eventdatabase_gq69"
         PSQL_COMMAND = "PGPASSWORD=${RENDER_DATABASE_PASSWORD} psql -h ${RENDER_DATABASE_HOSTNAME} -U ${RENDER_DATABASE_USERNAME} ${RENDER_DATABASE_NAME}"
     }
     
@@ -45,7 +45,7 @@ pipeline {
             // Logout from Render (if needed)
 
 
-            
+
             // script {
             //     bat 'render logout'
             // }
