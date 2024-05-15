@@ -2,21 +2,13 @@ pipeline {
     agent any
     
     environment {
-        // Define environment variables for your local database details
-        DATABASE_HOSTNAME = 'localhost'  // Assuming the database is running locally
-        DATABASE_PORT = 5433
-        DATABASE_NAME = 'eventlocaledatabase'
-        DATABASE_USERNAME = 'postgres'
-        DATABASE_PASSWORD = 'root'
-        INTERNAL_DATABASE_URL = "postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}:${DATABASE_PORT}/${DATABASE_NAME}"
-        
-        // Define environment variables for the Render cloud PostgreSQL database
+        // Define environment variables for your Render cloud PostgreSQL database
         RENDER_DATABASE_HOSTNAME = 'dpg-cp2jb6fsc6pc73a6qem0-a.oregon-postgres.render.com'
         RENDER_DATABASE_PORT = 5432
         RENDER_DATABASE_NAME = 'eventdatabase_gq69'
         RENDER_DATABASE_USERNAME = 'eventdatabase_gq69_user'
         RENDER_DATABASE_PASSWORD = 'oiKQmXkS4srpTlTK8TZgtqJkM0bo8X2P'
-        EXTERNAL_DATABASE_URL = "postgres://eventdatabase_gq69_user:oiKQmXkS4srpTlTK8TZgtqJkM0bo8X2P@dpg-cp2jb6fsc6pc73a6qem0-a.oregon-postgres.render.com/eventdatabase_gq69"
+        EXTERNAL_DATABASE_URL = "postgres://${RENDER_DATABASE_USERNAME}:${RENDER_DATABASE_PASSWORD}@${RENDER_DATABASE_HOSTNAME}:${RENDER_DATABASE_PORT}/${RENDER_DATABASE_NAME}"
         PSQL_COMMAND = "PGPASSWORD=${RENDER_DATABASE_PASSWORD} psql -h ${RENDER_DATABASE_HOSTNAME} -U ${RENDER_DATABASE_USERNAME} ${RENDER_DATABASE_NAME}"
     }
     
@@ -33,7 +25,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Run your database tests
+                    // Run your database tests (replace 'your-test-command' with actual test command)
                     bat 'your-test-command'
                 }
             }
@@ -43,12 +35,9 @@ pipeline {
     post {
         always {
             // Logout from Render (if needed)
-
-
-
-            // script {
-            //     bat 'render logout'
-            // }
+            script {
+                bat 'render logout'
+            }
         }
     }
 }
