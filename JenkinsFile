@@ -12,9 +12,27 @@ pipeline {
                     def oraclePassword = 'Oracle21c'
                     def scriptPath = 'F:\\PROJET SGBDA\\SGBD\\SGBD_sql.sql'  // Updated path to SQL file
 
-                    bat "sqlplus ${oracleUsername}/${oraclePassword}@//${oracleHost}:${oraclePort}/${oracleServiceName} @${scriptPath}"
+                    def sqlplusCmd = "sqlplus ${oracleUsername}/${oraclePassword}@//${oracleHost}:${oraclePort}/${oracleServiceName} @${scriptPath}"
+
+                    // Execute SQL*Plus command and capture output
+                    def sqlplusOutput = bat(script: sqlplusCmd, returnStdout: true).trim()
+
+                    // Check if SQL*Plus output contains error messages
+                    if (sqlplusOutput.contains('ORA-')) {
+                        echo "SQL*Plus command failed with the following output:"
+                        echo sqlplusOutput
+                        currentBuild.result = 'FAILURE'  // Set build result to FAILURE
+                    } else {
+                        echo "SQL script executed successfully."
+                    }
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline completed"
         }
     }
 }
