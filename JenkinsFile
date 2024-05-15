@@ -17,7 +17,7 @@ pipeline {
             steps {
                 script {
                     // Login to Render
-                    sh "render login --email ${RENDER_EMAIL} --password ${RENDER_PASSWORD}"
+                    bat "render login --email ${RENDER_EMAIL} --password ${RENDER_PASSWORD}"
                 }
             }
         }
@@ -26,7 +26,7 @@ pipeline {
             steps {
                 script {
                     // Deploy your PostgreSQL database on Render
-                    sh "render up database --database-url postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}:${DATABASE_PORT}/${DATABASE_NAME}"
+                    bat "render up database --database-url postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}:${DATABASE_PORT}/${DATABASE_NAME}"
                 }
             }
         }
@@ -35,7 +35,7 @@ pipeline {
             steps {
                 script {
                     // Run your database tests
-                    sh 'your-test-command'
+                    bat 'your-test-command'
                 }
             }
         }
@@ -44,7 +44,7 @@ pipeline {
             steps {
                 script {
                     // Delete the database after tests
-                    sh "render down database --database-url postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}:${DATABASE_PORT}/${DATABASE_NAME}"
+                    bat "render down database --database-url postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}:${DATABASE_PORT}/${DATABASE_NAME}"
                 }
             }
         }
@@ -53,7 +53,9 @@ pipeline {
     post {
         always {
             // Logout from Render
-            sh 'render logout'
+            script {
+                bat 'render logout'
+            }
         }
     }
 }
