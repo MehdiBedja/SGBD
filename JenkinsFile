@@ -17,7 +17,8 @@ pipeline {
                     def oraclePassword = 'Oracle21c'
                     def scriptPath = 'F:\\PROJET SGBDA\\SGBD\\SGBD_sql.sql'  // Updated path to SQL file
 
-                    def sqlplusCmd = "sqlplus ${oracleUsername}/${oraclePassword}@//${oracleHost}:${oraclePort}/${oracleServiceName} @${scriptPath}"
+                    // Construct SQL*Plus command with direct connection method and username/password
+                    def sqlplusCmd = "sqlplus -S ${oracleUsername}/${oraclePassword}@//${oracleHost}:${oraclePort}/${oracleServiceName} @${scriptPath}"
 
                     // Execute SQL*Plus command and capture output
                     def sqlplusOutput = bat(script: sqlplusCmd, returnStdout: true).trim()
