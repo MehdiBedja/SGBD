@@ -13,6 +13,9 @@ CREATE TABLE Location (
   location_name VARCHAR2(100) NOT NULL,
   localisation VARCHAR2(255) NOT NULL
 );
+-- Create SeatType table
+
+
 
 -- Create SeatType table
 CREATE TABLE SeatType (
