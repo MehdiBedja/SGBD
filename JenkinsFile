@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        ORACLE_HOME = 'F:\\Oracle21c'  // Update with your Oracle client path
+        PATH = "${env.ORACLE_HOME}\\bin;${env.PATH}"
+    }
+
     stages {
         stage('Deploy SQL to Oracle') {
             steps {
