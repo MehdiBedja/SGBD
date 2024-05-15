@@ -2,22 +2,23 @@ pipeline {
     agent any
     
     environment {
-        // Define environment variables for Render credentials and database details
-        RENDER_EMAIL = credentials('km_bedja@esi.dz')
-        RENDER_PASSWORD = credentials('crafterdz2003')
+        // Define environment variables for database details
         DATABASE_HOSTNAME = 'dpg-cp2jb6fsc6pc73a6qem0-a'
         DATABASE_PORT = 5432
         DATABASE_NAME = 'eventdatabase_gq69'
         DATABASE_USERNAME = 'eventdatabase_gq69_user'
-        DATABASE_PASSWORD = credentials('database-password')
+        DATABASE_PASSWORD = 'oiKQmXkS4srpTlTK8TZgtqJkM0bo8X2P'
+        INTERNAL_DATABASE_URL = "postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}/${DATABASE_NAME}"
+        EXTERNAL_DATABASE_URL = "postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}.oregon-postgres.render.com/${DATABASE_NAME}"
+        PSQL_COMMAND = "PGPASSWORD=${DATABASE_PASSWORD} psql -h ${DATABASE_HOSTNAME}.oregon-postgres.render.com -U ${DATABASE_USERNAME} ${DATABASE_NAME}"
     }
     
     stages {
         stage('Setup') {
             steps {
                 script {
-                    // Login to Render
-                    bat "render login --email ${RENDER_EMAIL} --password ${RENDER_PASSWORD}"
+                    // Login to Render (if needed)
+                    // bat "render login --email ${RENDER_EMAIL} --password ${RENDER_PASSWORD}"
                 }
             }
         }
@@ -26,7 +27,7 @@ pipeline {
             steps {
                 script {
                     // Deploy your PostgreSQL database on Render
-                    bat "render up database --database-url postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}:${DATABASE_PORT}/${DATABASE_NAME}"
+                    bat "render up database --database-url ${EXTERNAL_DATABASE_URL}"
                 }
             }
         }
@@ -42,25 +43,11 @@ pipeline {
     }
     
     post {
-        success {
-            // Only perform cleanup if the pipeline is successful
-            script {
-                // Delete the database after tests
-                bat "render down database --database-url postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}:${DATABASE_PORT}/${DATABASE_NAME}"
-                
-                // Logout from Render
-                bat 'render logout'
-            }
-        }
-        failure {
-            // Perform cleanup and logout even if the pipeline fails
-            script {
-                // Delete the database after tests
-                bat "render down database --database-url postgres://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOSTNAME}:${DATABASE_PORT}/${DATABASE_NAME}"
-                
-                // Logout from Render
-                bat 'render logout'
-            }
+        always {
+            // Logout from Render (if needed)
+            // script {
+            //     bat 'render logout'
+            // }
         }
     }
 }
