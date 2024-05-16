@@ -13,6 +13,7 @@ pipeline {
                     // Construct the Flyway command
                     def flywayCommand = "flyway -url=jdbc:postgresql://dpg-cp2jb6fsc6pc73a6qem0-a.oregon-postgres.render.com/eventdatabase_gq69 -user=eventdatabase_gq69_user -password=oiKQmXkS4srpTlTK8TZgtqJkM0bo8X2P migrate"
                     
+                    
                     // Execute the Flyway command using bat on Windows
                     bat "${flywayCommand}"
 
