@@ -1,280 +1,500 @@
 -- Create User table
 CREATE TABLE "User" (
-  user_id NUMBER PRIMARY KEY,
-  username VARCHAR2(50) NOT NULL UNIQUE,
-  password VARCHAR2(255) NOT NULL,
-  email VARCHAR2(100) NOT NULL UNIQUE,
+  user_id SERIAL PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  email VARCHAR(100) NOT NULL UNIQUE,
   registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create Location table
 CREATE TABLE Location (
-  location_id NUMBER PRIMARY KEY,
-  location_name VARCHAR2(100) NOT NULL,
-  localisation VARCHAR2(255) NOT NULL
+  location_id SERIAL PRIMARY KEY,
+  location_name VARCHAR(100) NOT NULL,
+  localisation VARCHAR(255) NOT NULL
 );
--- Create SeatType table
-
-
 
 -- Create SeatType table
 CREATE TABLE SeatType (
-  type_id NUMBER PRIMARY KEY,
-  type_name VARCHAR2(50) NOT NULL,
-  type_first NUMBER NOT NULL,
-  type_last NUMBER NOT NULL,
-  location_id NUMBER,
+  type_id SERIAL PRIMARY KEY,
+  type_name VARCHAR(50) NOT NULL,
+  type_first INTEGER NOT NULL,
+  type_last INTEGER NOT NULL,
+  location_id INTEGER,
   CONSTRAINT fk_location FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
 -- Create Event table
 CREATE TABLE Event (
-  event_id NUMBER PRIMARY KEY,
-  event_name VARCHAR2(100) NOT NULL,
+  event_id SERIAL PRIMARY KEY,
+  event_name VARCHAR(100) NOT NULL,
   event_date DATE NOT NULL,
   event_time TIMESTAMP NOT NULL,
-  ticket_price NUMBER(10, 2) NOT NULL,
-  tickets_available NUMBER NOT NULL
+  ticket_price NUMERIC(10, 2) NOT NULL,
+  tickets_available INTEGER NOT NULL,
+  creator_user_id INTEGER,
+  CONSTRAINT fk_creator_user FOREIGN KEY (creator_user_id) REFERENCES "User"(user_id)
 );
 
 -- Create Reservation table
 CREATE TABLE Reservation (
-  reservation_id NUMBER PRIMARY KEY,
-  user_id NUMBER,
-  event_id NUMBER,
-  seatNumber NUMBER,
+  reservation_id SERIAL PRIMARY KEY,
+  user_id INTEGER,
+  event_id INTEGER,
+  seatNumber INTEGER,
   reservation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  status VARCHAR2(10) DEFAULT 'pending',
+  status VARCHAR(10) DEFAULT 'pending',
   CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES "User"(user_id),
-  CONSTRAINT fk_event FOREIGN KEY (event_id) REFERENCES Event(event_id)
+  CONSTRAINT fk_event FOREIGN KEY (event_id) REFERENCES Event(event_id) ON DELETE CASCADE
 );
 
 -- Create TicketPrice table
 CREATE TABLE TicketPrice (
-  event_id NUMBER,
-  seat_type NUMBER,
-  price NUMBER NOT NULL,
+  event_id INTEGER,
+  seat_type INTEGER,
+  price NUMERIC NOT NULL,
   PRIMARY KEY (event_id, seat_type),
-  CONSTRAINT fk_event_tp FOREIGN KEY (event_id) REFERENCES Event(event_id),
-  CONSTRAINT fk_seat_tp FOREIGN KEY (seat_type) REFERENCES SeatType(type_id)
+  CONSTRAINT fk_event_tp FOREIGN KEY (event_id) REFERENCES Event(event_id) ON DELETE CASCADE,
+  CONSTRAINT fk_seat_tp FOREIGN KEY (seat_type) REFERENCES SeatType(type_id) ON DELETE CASCADE
 );
 
 -- Create Transaction table
-CREATE TABLE Transaction (
-  transaction_id NUMBER PRIMARY KEY,
-  user_id NUMBER,
-  reservation_id NUMBER,
+CREATE TABLE Transactions (
+  transaction_id SERIAL PRIMARY KEY,
+  user_id INTEGER,
+  reservation_id INTEGER,
   transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  amount NUMBER(10, 2) NOT NULL,
-  payment_method VARCHAR2(50) NOT NULL,
-  payment_status VARCHAR2(10) DEFAULT 'pending',
+  amount NUMERIC(10, 2) NOT NULL,
+  payment_method VARCHAR(50) NOT NULL,
+  payment_status VARCHAR(10) DEFAULT 'pending',
   CONSTRAINT fk_user_tr FOREIGN KEY (user_id) REFERENCES "User"(user_id),
-  CONSTRAINT fk_reservation FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id)
+  CONSTRAINT fk_reservation FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id) ON DELETE CASCADE
 );
 
 -- Create EventDate table
 CREATE TABLE EventDate (
-  event_id NUMBER,
-  location_id NUMBER,
+  event_id INTEGER,
+  location_id INTEGER,
   PRIMARY KEY (event_id, location_id),
   CONSTRAINT fk_event_ed FOREIGN KEY (event_id) REFERENCES Event(event_id),
   CONSTRAINT fk_location_ed FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
+-- Bitmap Indexes
+CREATE INDEX idx_reservation_status ON Reservation(status);
 
--------------------Creattion des index -------------------------------------
+CREATE INDEX idx_payment_status ON Transactions(payment_status);
 
-CREATE BITMAP INDEX idx_reservation_status ON Reservation(status);
+CREATE INDEX idx_payment_method ON Transactions(payment_method);
 
-CREATE BITMAP INDEX idx_event_seat ON TicketPrice(event_id, seat_type);
+-- Other Indexes
 
-CREATE BITMAP INDEX idx_payment_status ON Transaction(payment_status);
+CREATE INDEX idx_location_id ON SeatType(location_id);
 
-CREATE INDEX idx_event_location ON EventDate(event_id, location_id);
-
-CREATE INDEX idx_event_date ON Event(event_date); --usefull maybe for retiving events for a given date 
-
-CREATE INDEX idx_tickets_available ON Event(tickets_available);
-
--- see the unique and 
-
--------------------Insertion des valeurs -------------------------------------
+CREATE INDEX idx_event_date ON Event(event_date);
 
 
-CREATE OR REPLACE PROCEDURE InsertIntoUser(
-    p_username IN VARCHAR2,
-    p_password IN VARCHAR2,
-    p_email IN VARCHAR2
-) AS
+
+-- Procedure to create a new user
+CREATE OR REPLACE FUNCTION create_user(
+    p_username VARCHAR,
+    p_password VARCHAR,
+    p_email VARCHAR
+) RETURNS VOID AS
+$$
 BEGIN
     INSERT INTO "User" (username, password, email)
     VALUES (p_username, p_password, p_email);
-    COMMIT;
-END InsertIntoUser;
+END;
+$$ LANGUAGE plpgsql;
 
+-- Procedure to update user information
+CREATE OR REPLACE FUNCTION update_user(
+    p_user_id INTEGER,
+    p_username VARCHAR,
+    p_email VARCHAR
+) RETURNS VOID AS
+$$
+BEGIN
+    UPDATE "User"
+    SET username = p_username,
+        email = p_email
+    WHERE user_id = p_user_id;
+END;
+$$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE PROCEDURE InsertIntoLocation(
-    p_location_name IN VARCHAR2,
-    p_localisation IN VARCHAR2
-) AS
+-- Function to insert a new location
+CREATE OR REPLACE FUNCTION Insert_Location(
+    p_location_name VARCHAR,
+    p_localisation VARCHAR
+) RETURNS VOID AS
+$$
 BEGIN
     INSERT INTO Location (location_name, localisation)
     VALUES (p_location_name, p_localisation);
-    COMMIT;
-END InsertIntoLocation;
+END;
+$$ LANGUAGE plpgsql;
 
-
-
-CREATE OR REPLACE PROCEDURE InsertIntoSeatType(
-    p_type_name IN VARCHAR2,
-    p_type_first IN NUMBER,
-    p_type_last IN NUMBER,
-    p_location_id IN NUMBER
-) AS
+-- Function to insert a new seat type
+CREATE OR REPLACE FUNCTION Insert_SeatType(
+    p_type_name VARCHAR,
+    p_type_first INTEGER,
+    p_type_last INTEGER,
+    p_location_id INTEGER
+) RETURNS VOID AS
+$$
 BEGIN
     INSERT INTO SeatType (type_name, type_first, type_last, location_id)
     VALUES (p_type_name, p_type_first, p_type_last, p_location_id);
-    COMMIT;
-END InsertIntoSeatType;
+END;
+$$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE PROCEDURE InsertIntoEvent(
-    p_event_name IN VARCHAR2,
-    p_event_date IN DATE,
-    p_event_time IN TIMESTAMP,
-    p_ticket_price IN NUMBER,
-    p_tickets_available IN NUMBER
-) AS
+
+-- Function to insert a new event
+CREATE OR REPLACE FUNCTION Insert_Event(
+    p_event_name VARCHAR,
+    p_event_date DATE,
+    p_event_time TIMESTAMP,
+    p_ticket_price NUMERIC,
+    p_tickets_available INTEGER,
+	p_user_creator INTEGER
+) RETURNS VOID AS
+$$
 BEGIN
-    INSERT INTO Event (event_name, event_date, event_time, ticket_price, tickets_available)
-    VALUES (p_event_name, p_event_date, p_event_time, p_ticket_price, p_tickets_available);
-    COMMIT;
-END InsertIntoEvent;
+    INSERT INTO Event (event_name, event_date, event_time, ticket_price, tickets_available, creator_user_id)
+    VALUES (p_event_name, p_event_date, p_event_time, p_ticket_price, p_tickets_available, p_user_creator);
+END;
+$$ LANGUAGE plpgsql;
 
 
 
-
-CREATE OR REPLACE PROCEDURE InsertIntoReservation(
-    p_user_id IN NUMBER,
-    p_event_id IN NUMBER,
-    p_seatNumber IN NUMBER,
-    p_status IN VARCHAR2
-) AS
+-- Function to insert a new reservation
+CREATE OR REPLACE FUNCTION Insert_Reservation(
+    p_user_id INTEGER,
+    p_event_id INTEGER,
+    p_seatNumber INTEGER,
+    p_status VARCHAR
+) RETURNS VOID AS
+$$
 BEGIN
     INSERT INTO Reservation (user_id, event_id, seatNumber, status)
     VALUES (p_user_id, p_event_id, p_seatNumber, p_status);
-    COMMIT;
-END InsertIntoReservation;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE PROCEDURE InsertIntoTicketPrice(
-    p_event_id IN NUMBER,
-    p_seat_type IN NUMBER,
-    p_price IN NUMBER
-) AS
+-- Function to insert a new ticket price
+CREATE OR REPLACE FUNCTION Insert_TicketPrice(
+    p_event_id INTEGER,
+    p_seat_type INTEGER,
+    p_price NUMERIC
+) RETURNS VOID AS
+$$
 BEGIN
     INSERT INTO TicketPrice (event_id, seat_type, price)
     VALUES (p_event_id, p_seat_type, p_price);
-    COMMIT;
-END InsertIntoTicketPrice;
+END;
+$$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE PROCEDURE InsertIntoTransaction(
-    p_user_id IN NUMBER,
-    p_reservation_id IN NUMBER,
-    p_amount IN NUMBER,
-    p_payment_method IN VARCHAR2,
-    p_payment_status IN VARCHAR2
-) AS
+
+-- Function to insert a new transaction
+CREATE OR REPLACE FUNCTION Insert_Transaction(
+    p_user_id INTEGER,
+    p_reservation_id INTEGER,
+    p_amount NUMERIC,
+    p_payment_method VARCHAR,
+    p_payment_status VARCHAR
+) RETURNS VOID AS
+$$
 BEGIN
-    INSERT INTO Transaction (user_id, reservation_id, amount, payment_method, payment_status)
+    INSERT INTO Transactions (user_id, reservation_id, amount, payment_method, payment_status)
     VALUES (p_user_id, p_reservation_id, p_amount, p_payment_method, p_payment_status);
-    COMMIT;
-END InsertIntoTransaction;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE PROCEDURE InsertIntoEventDate(
-    p_event_id IN NUMBER,
-    p_location_id IN NUMBER
-) AS
+-- Function to insert a new event date
+CREATE OR REPLACE FUNCTION Insert_EventDate(
+    p_event_id INTEGER,
+    p_location_id INTEGER
+) RETURNS VOID AS
+$$
 BEGIN
     INSERT INTO EventDate (event_id, location_id)
     VALUES (p_event_id, p_location_id);
-    COMMIT;
-END InsertIntoEventDate;
-
-
-
----------------------------Inserting some values ------------------
-
-
-BEGIN
-    -- Insert into User table
-    InsertIntoUser('Alice', 'alice123', 'alice@example.com');
-    InsertIntoUser('Bob', 'bob456', 'bob@example.com');
-    InsertIntoUser('Charlie', 'charlie789', 'charlie@example.com');
-
-    -- Insert into Location table
-    InsertIntoLocation('Location A', 'Description for Location A');
-    InsertIntoLocation('Location B', 'Description for Location B');
-    InsertIntoLocation('Location C', 'Description for Location C');
-
-    -- Insert into SeatType table
-    InsertIntoSeatType('Standard', 1, 100, 1);
-    InsertIntoSeatType('VIP', 101, 200, 1);
-    InsertIntoSeatType('Premium', 201, 300, 2);
-
-    -- Insert into Event table
-    InsertIntoEvent('Concert', TO_DATE('2024-05-20', 'YYYY-MM-DD'), SYSTIMESTAMP, 50.00, 500);
-    InsertIntoEvent('Conference', TO_DATE('2024-06-15', 'YYYY-MM-DD'), SYSTIMESTAMP, 100.00, 200);
-    InsertIntoEvent('Sports Event', TO_DATE('2024-07-10', 'YYYY-MM-DD'), SYSTIMESTAMP, 75.00, 300);
-
-    -- Insert into Reservation table
-    InsertIntoReservation(1, 1, 1, 'confirmed');
-    InsertIntoReservation(2, 2, 2, 'pending');
-    InsertIntoReservation(3, 3, 3, 'confirmed');
-
-    -- Insert into TicketPrice table
-    InsertIntoTicketPrice(1, 1, 50);
-    InsertIntoTicketPrice(1, 2, 100);
-    InsertIntoTicketPrice(1, 3, 75);
-
-    -- Insert into Transaction table
-    InsertIntoTransaction(1, 1, 50, 'Credit Card', 'successful');
-    InsertIntoTransaction(2, 2, 100, 'PayPal', 'successful');
-    InsertIntoTransaction(3, 3, 75, 'Debit Card', 'successful');
-
-    -- Insert into EventDate table
-    InsertIntoEventDate(1, 1);
-    InsertIntoEventDate(2, 2);
-    InsertIntoEventDate(3, 3);
 END;
------------------Procedures Functions---------------------------
+$$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE PROCEDURE CalculateEventRevenue(
-    p_event_id IN NUMBER,
-    p_event_revenue OUT NUMBER
-) AS
+
+
+-- Function to calculate event revenue
+CREATE OR REPLACE FUNCTION CalculateEventRevenue(event_id_input INTEGER)
+RETURNS NUMERIC(10, 2) AS $$
+DECLARE
+    total_revenue NUMERIC(10, 2);
 BEGIN
-    SELECT SUM(t.amount)
-    INTO p_event_revenue
-    FROM Transaction t
-    INNER JOIN Reservation r ON t.reservation_id = r.reservation_id
-    WHERE r.event_id = p_event_id AND t.payment_status = 'successful';
-END CalculateEventRevenue;
+    SELECT SUM(amount)
+    INTO total_revenue
+    FROM Transactions
+    WHERE reservation_id IN (
+        SELECT reservation_id
+        FROM Reservation
+        WHERE event_id = event_id_input
+    );
+
+    RETURN COALESCE(total_revenue, 0.00); -- Handle NULL case if no transactions found
+END;
+$$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE FUNCTION GetUserTotalTransactions(
-    p_user_id IN NUMBER
-) RETURN NUMBER AS
-    v_total_transactions NUMBER;
+-- Function to get total sold tickets for an event
+CREATE OR REPLACE FUNCTION get_total_sold_tickets(p_event_id INTEGER) RETURNS INTEGER AS
+$$
+DECLARE
+    v_sold_tickets INTEGER := 0;
+    sold_ticket_rec RECORD;
 BEGIN
-    SELECT COUNT(*)
-    INTO v_total_transactions
-    FROM Transaction
-    WHERE user_id = p_user_id;
-    RETURN v_total_transactions;
-END GetUserTotalTransactions;
+    FOR sold_ticket_rec IN (
+        SELECT seatNumber
+        FROM Reservation
+        WHERE event_id = p_event_id
+        AND status = 'confirmed'
+    ) LOOP
+        v_sold_tickets := v_sold_tickets + 1;
+    END LOOP;
+
+    RETURN v_sold_tickets;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- Function to get user total transactions
+
+CREATE OR REPLACE FUNCTION GetUserTotalTransactions(user_id_input INTEGER)
+RETURNS TABLE (
+    transaction_id INTEGER,
+    user_id INTEGER,
+    reservation_id INTEGER,
+    transaction_date TIMESTAMP,
+    amount NUMERIC(10, 2),
+    payment_method VARCHAR(50),
+    payment_status VARCHAR(10)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        Transactions.transaction_id,
+        Transactions.user_id,
+        Transactions.reservation_id,
+        Transactions.transaction_date,
+        Transactions.amount,
+        Transactions.payment_method,
+        Transactions.payment_status
+    FROM
+        Transactions
+    WHERE
+        Transactions.user_id = user_id_input;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+-- Create a function to retrieve reservation details by reservation_id
+CREATE OR REPLACE FUNCTION get_reservation_info(p_reservation_id INTEGER)
+  RETURNS TABLE (
+    v_reservation_id INT,
+    v_user_id INTEGER,
+    v_event_id INTEGER,
+    v_seat_number INTEGER,
+    v_reservation_date TIMESTAMP,
+    v_status VARCHAR(10)
+  )
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT "reservation_id", "user_id", "event_id", "seatnumber" , "reservation_date", "status"
+    FROM Reservation
+    WHERE "reservation_id" = p_reservation_id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+CREATE OR REPLACE FUNCTION get_user_reservations(user_id_param INTEGER)
+RETURNS TABLE (
+    reservation_id INTEGER,
+    event_name VARCHAR(100),
+    event_date DATE,
+    event_time TIMESTAMP,
+    ticket_price NUMERIC(10, 2),
+    tickets_available INTEGER,
+    seat_number INTEGER,
+    reservation_date TIMESTAMP,
+    status VARCHAR(10)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        r.reservation_id,
+        e.event_name,
+        e.event_date,
+        e.event_time,
+        e.ticket_price,
+        e.tickets_available,
+        r.seatNumber,
+        r.reservation_date,
+        r.status
+    FROM
+        "User" u
+    INNER JOIN
+        Reservation r ON u.user_id = r.user_id
+    INNER JOIN
+        Event e ON r.event_id = e.event_id
+    WHERE
+        u.user_id = user_id_param;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+-- Function to get user events
+
+CREATE OR REPLACE FUNCTION get_user_events(user_id_input INTEGER)
+RETURNS TABLE (
+    event_id INTEGER,
+    event_name VARCHAR(100),
+    event_date DATE,
+    event_time TIMESTAMP,
+    ticket_price NUMERIC(10, 2),
+    tickets_available INTEGER,
+    creator_username VARCHAR(50)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        Event.event_id,
+        Event.event_name,
+        Event.event_date,
+        Event.event_time,
+        Event.ticket_price,
+        Event.tickets_available,
+        "User".username AS creator_username
+    FROM
+        Event
+    INNER JOIN
+        "User" ON Event.creator_user_id = "User".user_id
+    WHERE
+        Event.creator_user_id = user_id_input;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Function to get user transactions
+
+CREATE OR REPLACE FUNCTION get_user_transactions(user_id_input INTEGER)
+RETURNS TABLE (
+    transaction_id INTEGER,
+    user_id INTEGER,
+    reservation_id INTEGER,
+    transaction_date TIMESTAMP,
+    amount NUMERIC(10, 2),
+    payment_method VARCHAR(50),
+    payment_status VARCHAR(10)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        Transactions.transaction_id,
+        Transactions.user_id,
+        Transactions.reservation_id,
+        Transactions.transaction_date,
+        Transactions.amount,
+        Transactions.payment_method,
+        Transactions.payment_status
+    FROM
+        Transactions
+    WHERE
+        Transactions.user_id = user_id_input;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+-- Function to get transaction details
+
+CREATE OR REPLACE FUNCTION get_transaction_details(transaction_id_input INTEGER)
+RETURNS TABLE (
+    transaction_id INTEGER,
+    user_id INTEGER,
+    reservation_id INTEGER,
+    transaction_date TIMESTAMP,
+    amount NUMERIC(10, 2),
+    payment_method VARCHAR(50),
+    payment_status VARCHAR(10)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        Transactions.transaction_id,
+        Transactions.user_id,
+        Transactions.reservation_id,
+        Transactions.transaction_date,
+        Transactions.amount,
+        Transactions.payment_method,
+        Transactions.payment_status
+    FROM
+        Transactions
+    WHERE
+        Transactions.transaction_id = transaction_id_input;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION get_user_info(p_username VARCHAR)
+  RETURNS TABLE (
+    id INT,
+    usernamee VARCHAR(50),
+    user_password VARCHAR(255),
+    user_email VARCHAR(100),
+    registration_datee TIMESTAMP
+  )
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT "user_id", "username", "password" AS user_password, "email" AS user_email, "registration_date"
+    FROM "User"
+    WHERE "username" = p_username;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
