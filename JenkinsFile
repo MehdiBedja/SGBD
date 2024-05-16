@@ -15,6 +15,7 @@ pipeline {
                     
                     // Execute the Flyway command using bat on Windows
                     bat "${flywayCommand}"
+                    
                 }
             }
         }
