@@ -1,75 +1,22 @@
 pipeline {
     agent any
-
-    environment {
-        buildDirectory = 'path_to_build_directory'
-        releaseName = "Build_${BUILD_NUMBER}"
-        FLYWAY_LICENSE_KEY = 'your_flyway_license_key'
-        databaseHost = 'your_database_host'
-        databasePort = 'your_database_port'
-        databaseInstance = 'your_database_instance' // Optional
-        databaseName = 'your_database_name'
-        databaseUsername = 'your_database_username'
-        databasePassword = 'your_database_password'
-        flywayJDBC = "jdbc:sqlserver://${databaseHost}:${databasePort};databaseName=${databaseName}"
-        flywayLocations = 'filesystem:sql/migrations'
-    }
-
+    
     stages {
-        stage('Build') {
-            steps {
-                dir("${env.buildDirectory}") {
-                    script {
-                        // Clone your repository into the build directory
-                        git 'https://github.com/your/repository.git'
-                    }
-                }
-            }
-        }
-
-        stage('Database Migration') {
+        stage('Flyway Migration') {
             steps {
                 script {
-                    // Change directory to the build directory
-                    dir("${env.buildDirectory}") {
-                        // Run Flyway migrations
-                        if (isUnix()) {
-                            sh "flyway migrate -configFile=flyway.conf"
-                        } else {
-                            bat "flyway migrate -configFile=flyway.conf"
-                        }
-                    }
+                    // Replace these placeholders with your actual database connection details
+                    def url = 'jdbc:postgresql://dpg-cp2jb6fsc6pc73a6qem0-a.oregon-postgres.render.com/eventdatabase_gq69'
+                    def user = 'eventdatabase_gq69_user'
+                    def password = 'oiKQmXkS4srpTlTK8TZgtqJkM0bo8X2P'
+                    
+                    // Construct the Flyway command
+                    def flywayCommand = "flyway -url=${url} -user=${user} -password=${password} migrate"
+                    
+                    // Execute the Flyway command using bat on Windows
+                    bat "${flywayCommand}"
                 }
             }
-        }
-
-        stage('Approval Gate') {
-            steps {
-                // Implement your approval gate logic here
-                input message: 'Please approve the deployment', submitter: 'admin'
-            }
-        }
-
-        stage('Production') {
-            steps {
-                script {
-                    // Change directory to the build directory
-                    dir("${env.buildDirectory}") {
-                        // Run Flyway migration info for production
-                        if (isUnix()) {
-                            sh "flyway migrate info -configFile=flyway.conf"
-                        } else {
-                            bat "flyway migrate info -configFile=flyway.conf"
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            // Clean up or perform post-build actions if needed
         }
     }
 }
